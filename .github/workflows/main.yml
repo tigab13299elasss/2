@@ -1,0 +1,54 @@
+name: Debian XFCE Webtop
+
+on:
+  workflow_dispatch:
+
+jobs:
+  webtop:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Start Webtop
+        run: |
+          cat > docker-compose.yml <<'EOF'
+          services:
+            debian-desktop:
+              image: lscr.io/linuxserver/webtop:debian-xfce
+              container_name: debian_gui
+              ports:
+                - "6080:3000"
+              environment:
+                - PUID=1000
+                - PGID=1000
+                - TZ=Asia/Jakarta
+              shm_size: 1gb
+              stdin_open: true
+              tty: true
+              restart: unless-stopped
+          EOF
+
+          docker compose up -d
+
+      - name: Install Cloudflared
+        run: |
+          wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
+            -O cloudflared
+          chmod +x cloudflared
+          sudo mv cloudflared /usr/local/bin/
+
+      - name: Create Webtop Public Link
+        run: |
+          nohup cloudflared tunnel --url http://localhost:6080 > tunnel.log 2>&1 &
+          sleep 10
+
+          echo "=============================="
+          echo "WEBTOP PUBLIC LINK:"
+          grep -o 'https://[-a-zA-Z0-9]*\.trycloudflare\.com' tunnel.log || true
+          echo "=============================="
+
+      - name: Keep Webtop Running
+        run: |
+          echo "Webtop masih berjalan..."
+          while true; do
+            sleep 300
+          done
