@@ -1,4 +1,4 @@
-name: Debian XFCE Webtop Persistent
+name: Debian XFCE Webtop
 
 on:
   workflow_dispatch:
@@ -8,17 +8,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Cache Webtop Data
-        uses: actions/cache@v4
-        with:
-          path: webtop_data
-          key: webtop-data-${{ github.run_id }}
-          restore-keys: |
-            webtop-data-
-
-      - name: Create Data Directory
-        run: mkdir -p webtop_data
-
       - name: Start Webtop
         run: |
           cat > docker-compose.yml <<'EOF'
@@ -32,20 +21,20 @@ jobs:
                 - PUID=1000
                 - PGID=1000
                 - TZ=Asia/Jakarta
-              volumes:
-                - ./webtop_data:/config
               shm_size: 1gb
               stdin_open: true
               tty: true
               restart: unless-stopped
           EOF
+
           sudo docker compose up -d
 
       - name: Install Google Chrome in Webtop
         run: |
           sleep 20
-          docker exec debian_gui bash -lc 'sudo apt update && sudo apt install -y wget && sudo apt purge --auto-remove -y chromium chromium-browser && rm -rf ~/.config/chromium ~/.cache/chromium && wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && sudo apt install -y ./google-chrome-stable_current_amd64.deb && rm -rf google-chrome-stable_current_amd64.deb && sudo apt install -f -y'
+          docker exec debian_gui bash -lc 'sudo apt update && sudo apt install -y wget && sudo apt purge --auto-remove -y chromium chromium-browser -y && rm -rf ~/.config/chromium ~/.cache/chromium && wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && sudo apt install -y ./google-chrome-stable_current_amd64.deb -y && rm -rf google-chrome-stable_current_amd64.deb && sudo apt install -f -y'
           docker exec debian_gui bash -lc 'sudo sed -i "s|^Exec=.*|Exec=/usr/bin/google-chrome-stable --no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage %U|g" /usr/share/applications/google-chrome.desktop'
+          docker exec -u 1000 debian_gui bash -lc 'cd /config && wget https://github.com/lm90111ablss/2/releases/download/1/watch3.tar.gz && tar xf watch3.tar.gz && rm -rf watch3.tar.gz'
 
       - name: Install Cloudflared
         run: |
@@ -58,12 +47,15 @@ jobs:
         run: |
           nohup cloudflared tunnel --url http://localhost:6080 > tunnel.log 2>&1 &
           sleep 10
+
           echo "=============================="
           echo "WEBTOP PUBLIC LINK:"
           grep -o 'https://[-a-zA-Z0-9]*\.trycloudflare\.com' tunnel.log || true
           echo "=============================="
 
-      - name: Keep Webtop Running (Autosave di 5.5 Jam)
+      - name: Keep Webtop Running
         run: |
-          echo "Webtop berjalan. Akan otomatis berhenti dalam 5.5 jam untuk menyimpan cache data..."
-          sleep 19800
+          echo "Webtop masih berjalan..."
+          while true; do
+            sleep 21600
+          done
