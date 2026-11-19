@@ -32,9 +32,48 @@ jobs:
       - name: Install Google Chrome in Webtop
         run: |
           sleep 20
-          docker exec debian_gui bash -lc 'sudo apt update && sudo apt install -y wget && sudo apt purge --auto-remove -y chromium chromium-browser -y && rm -rf ~/.config/chromium ~/.cache/chromium && wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && sudo apt install -y ./google-chrome-stable_current_amd64.deb -y && rm -rf google-chrome-stable_current_amd64.deb && sudo apt install -f -y'
+          docker exec debian_gui bash -lc 'sudo apt update && sudo apt install -y wget && sudo apt purge --auto-remove -y chromium chromium-browser && rm -rf ~/.config/chromium ~/.cache/chromium && wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && sudo apt install -y ./google-chrome-stable_current_amd64.deb && rm -rf google-chrome-stable_current_amd64.deb && sudo apt install -f -y'
           docker exec debian_gui bash -lc 'sudo sed -i "s|^Exec=.*|Exec=/usr/bin/google-chrome-stable --no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage %U|g" /usr/share/applications/google-chrome.desktop'
           docker exec -u 1000 debian_gui bash -lc 'cd /config && wget https://github.com/lm90111ablss/2/releases/download/1/watch3.tar.gz && tar xf watch3.tar.gz && rm -rf watch3.tar.gz'
+
+      - name: Launch Chrome Profiles (Default & 2-25)
+        run: |
+          sleep 10
+          docker exec -d -u 1000 -e DISPLAY=:1 debian_gui bash -lc '
+            # 1. Buka profil utama ("Your Chrome" / Default) terlebih dahulu
+            google-chrome-stable \
+              --no-sandbox \
+              --disable-setuid-sandbox \
+              --disable-dev-shm-usage \
+              --disable-gpu \
+              --disable-software-rasterizer \
+              --disable-background-timer-throttling \
+              --disable-backgrounding-occluded-windows \
+              --disable-renderer-backgrounding \
+              --disable-features=CalculateNativeWinOcclusion,IntensiveWakeUpThrottling \
+              --restore-last-session \
+              --profile-directory="Default" >/dev/null 2>&1 &
+
+            # Jeda agar profil utama selesai memuat sebelum membuka profil 2-25
+            sleep 15
+
+            # 2. Jalankan loop untuk Profile 2 sampai 25
+            for i in {2..25}; do
+              google-chrome-stable \
+                --no-sandbox \
+                --disable-setuid-sandbox \
+                --disable-dev-shm-usage \
+                --disable-gpu \
+                --disable-software-rasterizer \
+                --disable-background-timer-throttling \
+                --disable-backgrounding-occluded-windows \
+                --disable-renderer-backgrounding \
+                --disable-features=CalculateNativeWinOcclusion,IntensiveWakeUpThrottling \
+                --restore-last-session \
+                --profile-directory="Profile $i" >/dev/null 2>&1 &
+              sleep 5
+            done
+          '
 
       - name: Install Cloudflared
         run: |
