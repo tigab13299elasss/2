@@ -10,18 +10,18 @@ jobs:
     steps:
       - name: Start Webtop
         run: |
-          cat > docker-compose.yml <<'EOF'
+          cat << 'EOF' > docker-compose.yml
           services:
             debian-desktop:
               image: lscr.io/linuxserver/webtop:debian-xfce
               container_name: debian_gui
               ports:
-                - "6080:3000"
+                - '6080:3000'
               environment:
                 - PUID=1000
                 - PGID=1000
-                - TZ=Asia/Jakarta
-              shm_size: 1gb
+                - TZ=Etc/UTC
+              ipc: host
               stdin_open: true
               tty: true
               restart: unless-stopped
@@ -45,33 +45,21 @@ jobs:
               --no-sandbox \
               --disable-setuid-sandbox \
               --disable-dev-shm-usage \
-              --disable-gpu \
-              --disable-software-rasterizer \
-              --disable-background-timer-throttling \
-              --disable-backgrounding-occluded-windows \
-              --disable-renderer-backgrounding \
-              --disable-features=CalculateNativeWinOcclusion,IntensiveWakeUpThrottling \
               --restore-last-session \
-              --profile-directory="Default" >/dev/null 2>&1 &
+              --profile-directory="Default" &
 
             # Jeda agar profil utama selesai memuat sebelum membuka profil 2-25
             sleep 15
 
             # 2. Jalankan loop untuk Profile 2 sampai 25
             for i in {2..25}; do
-              google-chrome-stable \
+                google-chrome-stable \
                 --no-sandbox \
                 --disable-setuid-sandbox \
                 --disable-dev-shm-usage \
-                --disable-gpu \
-                --disable-software-rasterizer \
-                --disable-background-timer-throttling \
-                --disable-backgrounding-occluded-windows \
-                --disable-renderer-backgrounding \
-                --disable-features=CalculateNativeWinOcclusion,IntensiveWakeUpThrottling \
                 --restore-last-session \
-                --profile-directory="Profile $i" >/dev/null 2>&1 &
-              sleep 5
+                --profile-directory="Profile $i" &
+                sleep 5
             done
           '
 
